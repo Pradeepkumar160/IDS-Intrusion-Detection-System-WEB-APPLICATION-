@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: 'IDS Dashboards'
+    orgId: 1
+    folder: 'IDS'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    options:
+      path: /etc/grafana/provisioning/dashboards

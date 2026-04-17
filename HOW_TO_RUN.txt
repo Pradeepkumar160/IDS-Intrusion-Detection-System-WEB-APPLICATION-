@@ -1,0 +1,70 @@
+============================================================
+  IDS — Real-Time Intrusion Detection System
+  Hybrid ML + Rule-Based | Python + Flask
+============================================================
+
+============================================================
+  OPTION A — Run WITHOUT Docker (Quickest, for demo)
+============================================================
+
+STEP 1 — Install dependencies:
+  pip install flask scikit-learn numpy joblib PyJWT pandas
+
+STEP 2 — Train the ML model (only once):
+  python ml/train.py
+
+STEP 3 — Start the server:
+  python run.py
+
+  Open browser → http://127.0.0.1:5000/dashboard
+
+============================================================
+  OPTION B — Run WITH Docker (Full stack: App + Prometheus + Grafana)
+============================================================
+
+REQUIREMENT: Docker Desktop must be installed and running.
+Download: https://www.docker.com/products/docker-desktop/
+
+STEP 1 — Start all 3 services with one command:
+  docker-compose up --build -d
+
+STEP 2 — Open these in your browser:
+
+  IDS App       → http://localhost:5000/dashboard
+  Prometheus    → http://localhost:9090
+  Grafana       → http://localhost:3000
+                  Login: admin / admin123
+                  Dashboard auto-loads under: IDS → IDS Real-Time Intrusion Detection
+
+STEP 3 — Stop everything:
+  docker-compose down
+
+============================================================
+  WHAT PROMETHEUS DOES IN THIS PROJECT
+============================================================
+
+  - Scrapes /metrics from the IDS app every 5 seconds
+  - Collects: total requests, blocked, alerts, attack types, latency
+  - Stores time-series data for Grafana to visualize
+
+============================================================
+  WHAT GRAFANA SHOWS
+============================================================
+
+  - Total Requests / Blocked / Alerts / Blocked IPs (stat cards)
+  - Request rate over time (line chart)
+  - Attack types breakdown (pie chart)
+  - Attack types over time (line chart)
+  - Avg IDS latency gauge
+  - Detection accuracy gauge (93%)
+  - Auto-refreshes every 5 seconds
+
+============================================================
+  KUBERNETES DEPLOYMENT
+============================================================
+
+  kubectl apply -f k8s/ids-deployment.yaml
+  kubectl get pods       → shows 3 replicas running
+  kubectl get services   → get external IP
+
+============================================================

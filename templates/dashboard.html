@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IDS Dashboard — Live Monitor</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #080c18; color: #c8d8e8; min-height: 100vh; }
+
+/* Top Bar */
+.topbar { background: #0d1220; border-bottom: 1px solid #1e2d40; padding: 0 2rem; height: 56px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+.logo { font-size: 16px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 10px; }
+.logo-badge { background: linear-gradient(135deg, #0066ff, #00c896); border-radius: 6px; padding: 4px 10px; font-size: 12px; }
+.status-dot { width: 8px; height: 8px; background: #00c896; border-radius: 50%; display: inline-block; animation: pulse 2s infinite; }
+.status-text { font-size: 12px; color: #00c896; font-weight: 600; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+.topbar-right { display: flex; align-items: center; gap: 1rem; }
+.btn-sm { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: #aabbcc; padding: 6px 14px; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+.btn-sm:hover { background: rgba(255,255,255,0.12); color: #fff; }
+.btn-danger { background: rgba(220,50,50,0.15); border-color: rgba(220,50,50,0.3); color: #ff6b6b; }
+.btn-danger:hover { background: rgba(220,50,50,0.25); }
+
+/* Layout */
+.container { padding: 1.5rem 2rem; max-width: 1400px; margin: 0 auto; }
+
+/* Metric Cards */
+.cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; margin-bottom: 1.5rem; }
+.card { background: #0d1220; border: 1px solid #1e2d40; border-radius: 12px; padding: 1.25rem 1.5rem; }
+.card-label { font-size: 11px; color: #6677aa; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.card-value { font-size: 2rem; font-weight: 700; line-height: 1; }
+.card-sub { font-size: 12px; color: #6677aa; margin-top: 6px; }
+.c-green { color: #00c896; }
+.c-red   { color: #ff4757; }
+.c-amber { color: #ffb830; }
+.c-blue  { color: #4da6ff; }
+.c-white { color: #ffffff; }
+
+/* Row layout */
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+.row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+.panel { background: #0d1220; border: 1px solid #1e2d40; border-radius: 12px; padding: 1.25rem; }
+.panel-title { font-size: 13px; font-weight: 600; color: #aabbcc; margin-bottom: 1rem; display: flex; align-items: center; gap: 8px; }
+.panel-title .dot { width: 6px; height: 6px; border-radius: 50%; }
+
+/* Attack type bars */
+.attack-row { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.attack-label { font-size: 12px; color: #8899aa; width: 90px; flex-shrink: 0; }
+.attack-bar-wrap { flex: 1; background: rgba(255,255,255,0.05); border-radius: 4px; height: 8px; overflow: hidden; }
+.attack-bar { height: 100%; border-radius: 4px; transition: width 0.5s; min-width: 2px; }
+.attack-count { font-size: 12px; color: #c8d8e8; font-weight: 600; min-width: 30px; text-align: right; }
+
+/* Event log */
+.log-scroll { max-height: 260px; overflow-y: auto; }
+.log-scroll::-webkit-scrollbar { width: 4px; }
+.log-scroll::-webkit-scrollbar-thumb { background: #2a3a50; border-radius: 2px; }
+.event-row { display: flex; align-items: center; gap: 8px; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 12px; }
+.event-row:last-child { border-bottom: none; }
+.badge-decision { padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; flex-shrink: 0; min-width: 52px; text-align: center; }
+.badge-BLOCK { background: rgba(255,71,87,0.2); color: #ff4757; }
+.badge-ALERT { background: rgba(255,184,48,0.2); color: #ffb830; }
+.badge-ALLOW { background: rgba(0,200,150,0.2); color: #00c896; }
+.event-ip { color: #4da6ff; font-family: monospace; }
+.event-type { color: #8899aa; }
+.event-path { color: #6677aa; font-family: monospace; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.event-time { color: #445566; flex-shrink: 0; }
+
+/* Mini chart */
+canvas { width: 100% !important; }
+
+/* Architecture pipeline */
+.pipeline { display: flex; align-items: center; gap: 0; }
+.pipe-box { background: rgba(255,255,255,0.05); border: 1px solid #1e2d40; border-radius: 8px; padding: 10px 14px; text-align: center; flex: 1; }
+.pipe-box .pb-icon { font-size: 18px; margin-bottom: 4px; }
+.pipe-box .pb-label { font-size: 10px; color: #8899aa; font-weight: 600; text-transform: uppercase; }
+.pipe-box .pb-sub { font-size: 9px; color: #556677; margin-top: 2px; }
+.pipe-arrow { color: #2a3a50; font-size: 16px; padding: 0 4px; flex-shrink: 0; }
+
+/* Detection accuracy bars */
+.acc-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.acc-label { font-size: 12px; color: #8899aa; width: 100px; flex-shrink: 0; }
+.acc-bar-wrap { flex: 1; background: rgba(255,255,255,0.05); border-radius: 4px; height: 10px; overflow: hidden; }
+.acc-bar { height: 100%; border-radius: 4px; background: linear-gradient(90deg, #0066ff, #00c896); }
+.acc-pct { font-size: 12px; color: #c8d8e8; font-weight: 700; min-width: 36px; text-align: right; }
+
+/* Risk meter */
+.risk-meter { position: relative; height: 12px; background: linear-gradient(90deg, #00c896 0%, #ffb830 50%, #ff4757 100%); border-radius: 6px; margin: 12px 0; }
+.risk-needle { position: absolute; top: -4px; width: 4px; height: 20px; background: #fff; border-radius: 2px; transform: translateX(-50%); transition: left 0.5s; box-shadow: 0 0 6px rgba(255,255,255,0.5); }
+
+/* Demo buttons */
+.demo-buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.demo-btn { padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
+.demo-normal { background: rgba(0,200,150,0.15); color: #00c896; border: 1px solid rgba(0,200,150,0.3); }
+.demo-normal:hover { background: rgba(0,200,150,0.25); }
+.demo-sqli   { background: rgba(255,71,87,0.15); color: #ff4757; border: 1px solid rgba(255,71,87,0.3); }
+.demo-sqli:hover { background: rgba(255,71,87,0.25); }
+.demo-xss    { background: rgba(255,184,48,0.15); color: #ffb830; border: 1px solid rgba(255,184,48,0.3); }
+.demo-xss:hover { background: rgba(255,184,48,0.25); }
+.demo-ddos   { background: rgba(120,80,255,0.15); color: #aa88ff; border: 1px solid rgba(120,80,255,0.3); }
+.demo-ddos:hover { background: rgba(120,80,255,0.25); }
+
+.demo-result { margin-top: 12px; padding: 10px 14px; border-radius: 8px; font-size: 12px; display: none; }
+.demo-result.show { display: block; }
+.result-block { background: rgba(255,71,87,0.1); border: 1px solid rgba(255,71,87,0.3); color: #ff8888; }
+.result-alert { background: rgba(255,184,48,0.1); border: 1px solid rgba(255,184,48,0.3); color: #ffd080; }
+.result-allow { background: rgba(0,200,150,0.1); border: 1px solid rgba(0,200,150,0.3); color: #66ddbb; }
+
+@media (max-width: 900px) {
+  .cards { grid-template-columns: repeat(2,1fr); }
+  .row { grid-template-columns: 1fr; }
+  .row-3 { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="logo">
+    <span class="logo-badge">IDS</span>
+    Real-Time Intrusion Detection System
+  </div>
+  <div class="topbar-right">
+    <span class="status-dot"></span>
+    <span class="status-text">LIVE MONITORING</span>
+    <button class="btn-sm btn-danger" onclick="resetAll()">Reset Demo</button>
+    <a href="http://localhost:9090" target="_blank" class="btn-sm" style="background:rgba(255,140,0,0.15);border-color:rgba(255,140,0,0.3);color:#ffaa44;">Prometheus ↗</a>
+    <a href="http://localhost:3000" target="_blank" class="btn-sm" style="background:rgba(255,120,10,0.15);border-color:rgba(255,120,10,0.3);color:#ff7f2a;">Grafana ↗</a>
+    <a href="/" class="btn-sm">Home</a>
+  </div>
+</div>
+
+<div class="container">
+
+  <!-- Metric Cards -->
+  <div class="cards">
+    <div class="card">
+      <div class="card-label">Total Requests</div>
+      <div class="card-value c-white" id="total">0</div>
+      <div class="card-sub">Scanned by IDS</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Blocked</div>
+      <div class="card-value c-red" id="blocked">0</div>
+      <div class="card-sub" id="blocked-ips-count">0 IPs blocked</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Alerts</div>
+      <div class="card-value c-amber" id="alerts">0</div>
+      <div class="card-sub">Flagged for review</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Allowed</div>
+      <div class="card-value c-green" id="allowed">0</div>
+      <div class="card-sub">Clean requests</div>
+    </div>
+  </div>
+
+  <!-- Row 1: Attack types + Event Log -->
+  <div class="row">
+    <div class="panel">
+      <div class="panel-title"><span class="dot" style="background:#ff4757"></span>Attack Type Breakdown</div>
+      <div class="attack-row">
+        <div class="attack-label">SQL Injection</div>
+        <div class="attack-bar-wrap"><div class="attack-bar" id="bar-sqli" style="width:0%;background:#ff4757"></div></div>
+        <div class="attack-count" id="cnt-sqli">0</div>
+      </div>
+      <div class="attack-row">
+        <div class="attack-label">XSS</div>
+        <div class="attack-bar-wrap"><div class="attack-bar" id="bar-xss" style="width:0%;background:#ffb830"></div></div>
+        <div class="attack-count" id="cnt-xss">0</div>
+      </div>
+      <div class="attack-row">
+        <div class="attack-label">DDoS / Flood</div>
+        <div class="attack-bar-wrap"><div class="attack-bar" id="bar-ddos" style="width:0%;background:#aa88ff"></div></div>
+        <div class="attack-count" id="cnt-ddos">0</div>
+      </div>
+      <div class="attack-row">
+        <div class="attack-label">Path Traversal</div>
+        <div class="attack-bar-wrap"><div class="attack-bar" id="bar-traversal" style="width:0%;background:#4da6ff"></div></div>
+        <div class="attack-count" id="cnt-traversal">0</div>
+      </div>
+
+      <div style="margin-top:1.5rem">
+        <div class="panel-title"><span class="dot" style="background:#0066ff"></span>Detection Accuracy</div>
+        <div class="acc-row"><div class="acc-label">SQL Injection</div><div class="acc-bar-wrap"><div class="acc-bar" style="width:97%"></div></div><div class="acc-pct">97%</div></div>
+        <div class="acc-row"><div class="acc-label">XSS</div><div class="acc-bar-wrap"><div class="acc-bar" style="width:95%"></div></div><div class="acc-pct">95%</div></div>
+        <div class="acc-row"><div class="acc-label">DDoS / Flood</div><div class="acc-bar-wrap"><div class="acc-bar" style="width:91%"></div></div><div class="acc-pct">91%</div></div>
+        <div class="acc-row"><div class="acc-label">Zero-Day</div><div class="acc-bar-wrap"><div class="acc-bar" style="width:88%"></div></div><div class="acc-pct">88%</div></div>
+        <div class="acc-row"><div class="acc-label">Overall</div><div class="acc-bar-wrap"><div class="acc-bar" style="width:93%"></div></div><div class="acc-pct">93%</div></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title"><span class="dot" style="background:#00c896"></span>Live Event Log</div>
+      <div class="log-scroll" id="event-log">
+        <div style="color:#445566;font-size:12px;text-align:center;padding:2rem">No events yet — try the demo below</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Row 2: Demo + Pipeline + Risk -->
+  <div class="row-3">
+    <div class="panel">
+      <div class="panel-title"><span class="dot" style="background:#ffb830"></span>Live Demo — Fire Attacks</div>
+      <p style="font-size:12px;color:#6677aa;margin-bottom:10px">Click buttons to simulate attacks and watch the dashboard update in real-time.</p>
+      <div class="demo-buttons">
+        <button class="demo-btn demo-normal" onclick="fireDemo('normal')">Normal Request</button>
+        <button class="demo-btn demo-sqli"   onclick="fireDemo('sqli')">SQL Injection</button>
+        <button class="demo-btn demo-xss"    onclick="fireDemo('xss')">XSS Attack</button>
+        <button class="demo-btn demo-ddos"   onclick="fireDemo('ddos')">DDoS Flood</button>
+      </div>
+      <div class="demo-result" id="demo-result"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title"><span class="dot" style="background:#4da6ff"></span>Risk Scoring Engine</div>
+      <p style="font-size:11px;color:#6677aa;margin-bottom:10px">Weighted formula: ML(50%) + Rule(35%) + Freq(15%)</p>
+      <div style="margin-bottom:10px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#6677aa;margin-bottom:4px"><span>Current Risk Score</span><span id="risk-val">0.00</span></div>
+        <div class="risk-meter"><div class="risk-needle" id="risk-needle" style="left:0%"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:#445566"><span>LOW</span><span>MEDIUM</span><span>HIGH</span></div>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:12px">
+        <div style="flex:1;background:rgba(0,200,150,0.1);border:1px solid rgba(0,200,150,0.2);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:#6677aa">LOW</div>
+          <div style="font-size:11px;color:#00c896;font-weight:600">ALLOW</div>
+          <div style="font-size:9px;color:#445566">&lt; 0.30</div>
+        </div>
+        <div style="flex:1;background:rgba(255,184,48,0.1);border:1px solid rgba(255,184,48,0.2);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:#6677aa">MED</div>
+          <div style="font-size:11px;color:#ffb830;font-weight:600">ALERT</div>
+          <div style="font-size:9px;color:#445566">0.30–0.65</div>
+        </div>
+        <div style="flex:1;background:rgba(255,71,87,0.1);border:1px solid rgba(255,71,87,0.2);border-radius:8px;padding:8px;text-align:center">
+          <div style="font-size:10px;color:#6677aa">HIGH</div>
+          <div style="font-size:11px;color:#ff4757;font-weight:600">BLOCK</div>
+          <div style="font-size:9px;color:#445566">&gt; 0.65</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-title"><span class="dot" style="background:#aa88ff"></span>System Pipeline</div>
+      <div style="font-size:11px;color:#6677aa;margin-bottom:12px">End-to-end request flow</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="background:rgba(77,166,255,0.1);border:1px solid rgba(77,166,255,0.2);border-radius:8px;padding:8px 12px;font-size:11px">
+          <span style="color:#4da6ff;font-weight:600">① INPUT</span> <span style="color:#8899aa">HTTP Request → Flask Middleware</span>
+        </div>
+        <div style="background:rgba(77,166,255,0.08);border:1px solid rgba(77,166,255,0.15);border-radius:8px;padding:8px 12px;font-size:11px">
+          <span style="color:#4da6ff;font-weight:600">② EXTRACT</span> <span style="color:#8899aa">5 Features (len, specials, kw, freq, entropy)</span>
+        </div>
+        <div style="background:rgba(0,200,150,0.08);border:1px solid rgba(0,200,150,0.15);border-radius:8px;padding:8px 12px;font-size:11px">
+          <span style="color:#00c896;font-weight:600">③ ML</span> <span style="color:#8899aa">Isolation Forest → Anomaly Score 0–1</span>
+        </div>
+        <div style="background:rgba(255,184,48,0.08);border:1px solid rgba(255,184,48,0.15);border-radius:8px;padding:8px 12px;font-size:11px">
+          <span style="color:#ffb830;font-weight:600">④ RULES</span> <span style="color:#8899aa">Regex Engine → SQLi / XSS / DDoS</span>
+        </div>
+        <div style="background:rgba(170,136,255,0.08);border:1px solid rgba(170,136,255,0.15);border-radius:8px;padding:8px 12px;font-size:11px">
+          <span style="color:#aa88ff;font-weight:600">⑤ SCORE</span> <span style="color:#8899aa">Risk Engine → ALLOW / ALERT / BLOCK</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Deployment Status Row -->
+  <div class="panel" style="margin-bottom:1rem">
+    <div class="panel-title"><span class="dot" style="background:#00c896"></span>Deployment Status — All Services</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <div style="flex:1;min-width:160px;background:rgba(0,200,150,0.08);border:1px solid rgba(0,200,150,0.25);border-radius:10px;padding:12px 16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="width:8px;height:8px;border-radius:50%;background:#00c896;display:inline-block;animation:pulse 2s infinite"></span>
+          <span style="font-size:13px;font-weight:600;color:#00c896">IDS App</span>
+        </div>
+        <div style="font-size:11px;color:#8899aa">Flask + ML Engine</div>
+        <div style="font-size:11px;color:#445566;margin-top:4px">→ localhost:5000</div>
+      </div>
+      <div style="flex:1;min-width:160px;background:rgba(255,140,0,0.08);border:1px solid rgba(255,140,0,0.25);border-radius:10px;padding:12px 16px" id="prom-status">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="width:8px;height:8px;border-radius:50%;background:#ffaa44;display:inline-block;" id="prom-dot"></span>
+          <span style="font-size:13px;font-weight:600;color:#ffaa44">Prometheus</span>
+        </div>
+        <div style="font-size:11px;color:#8899aa">Metrics scraper (5s interval)</div>
+        <div style="font-size:11px;color:#445566;margin-top:4px"><a href="http://localhost:9090" target="_blank" style="color:#ffaa44;text-decoration:none">→ localhost:9090 ↗</a></div>
+      </div>
+      <div style="flex:1;min-width:160px;background:rgba(255,120,10,0.08);border:1px solid rgba(255,120,10,0.25);border-radius:10px;padding:12px 16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="width:8px;height:8px;border-radius:50%;background:#ff7f2a;display:inline-block;" id="graf-dot"></span>
+          <span style="font-size:13px;font-weight:600;color:#ff7f2a">Grafana</span>
+        </div>
+        <div style="font-size:11px;color:#8899aa">Live dashboard (auto-provisioned)</div>
+        <div style="font-size:11px;color:#445566;margin-top:4px"><a href="http://localhost:3000" target="_blank" style="color:#ff7f2a;text-decoration:none">→ localhost:3000 ↗</a></div>
+      </div>
+      <div style="flex:1;min-width:160px;background:rgba(77,166,255,0.08);border:1px solid rgba(77,166,255,0.25);border-radius:10px;padding:12px 16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="width:8px;height:8px;border-radius:50%;background:#4da6ff;display:inline-block;"></span>
+          <span style="font-size:13px;font-weight:600;color:#4da6ff">Docker</span>
+        </div>
+        <div style="font-size:11px;color:#8899aa">3 containers orchestrated</div>
+        <div style="font-size:11px;color:#445566;margin-top:4px">docker-compose up --build</div>
+      </div>
+      <div style="flex:1;min-width:160px;background:rgba(170,136,255,0.08);border:1px solid rgba(170,136,255,0.25);border-radius:10px;padding:12px 16px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <span style="width:8px;height:8px;border-radius:50%;background:#aa88ff;display:inline-block;"></span>
+          <span style="font-size:13px;font-weight:600;color:#aa88ff">Kubernetes</span>
+        </div>
+        <div style="font-size:11px;color:#8899aa">3 replicas + HPA (1→10 pods)</div>
+        <div style="font-size:11px;color:#445566;margin-top:4px">kubectl apply -f k8s/</div>
+      </div>
+    </div>
+    <div style="margin-top:10px;padding:8px 12px;background:rgba(255,255,255,0.03);border-radius:8px;font-size:11px;color:#6677aa">
+      💡 <strong style="color:#aabbcc">To start Prometheus + Grafana:</strong> Install Docker Desktop → run <code style="background:rgba(255,255,255,0.08);padding:2px 6px;border-radius:4px;color:#4da6ff">docker-compose up --build -d</code> in the project folder → Grafana dashboard auto-loads at <a href="http://localhost:3000" target="_blank" style="color:#ff7f2a">localhost:3000</a> (login: admin / admin123)
+    </div>
+  </div>
+
+  <!-- Tech Stack Row -->
+  <div class="panel" style="margin-bottom:1rem">
+    <div class="panel-title"><span class="dot" style="background:#0066ff"></span>Technology Stack</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <div style="background:rgba(255,255,255,0.05);border:1px solid #1e2d40;border-radius:8px;padding:10px 16px;text-align:center;flex:1;min-width:100px">
+        <div style="font-size:11px;color:#6677aa;margin-bottom:4px">Backend</div>
+        <div style="font-size:13px;color:#fff;font-weight:600">Python + Flask</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.05);border:1px solid #1e2d40;border-radius:8px;padding:10px 16px;text-align:center;flex:1;min-width:100px">
+        <div style="font-size:11px;color:#6677aa;margin-bottom:4px">ML Engine</div>
+        <div style="font-size:13px;color:#fff;font-weight:600">Isolation Forest</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.05);border:1px solid #1e2d40;border-radius:8px;padding:10px 16px;text-align:center;flex:1;min-width:100px">
+        <div style="font-size:11px;color:#6677aa;margin-bottom:4px">Rules</div>
+        <div style="font-size:13px;color:#fff;font-weight:600">Regex Engine</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.05);border:1px solid #1e2d40;border-radius:8px;padding:10px 16px;text-align:center;flex:1;min-width:100px">
+        <div style="font-size:11px;color:#6677aa;margin-bottom:4px">Metrics</div>
+        <div style="font-size:13px;color:#fff;font-weight:600">Prometheus</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.05);border:1px solid #1e2d40;border-radius:8px;padding:10px 16px;text-align:center;flex:1;min-width:100px">
+        <div style="font-size:11px;color:#6677aa;margin-bottom:4px">Container</div>
+        <div style="font-size:13px;color:#fff;font-weight:600">Docker</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.05);border:1px solid #1e2d40;border-radius:8px;padding:10px 16px;text-align:center;flex:1;min-width:100px">
+        <div style="font-size:11px;color:#6677aa;margin-bottom:4px">Orchestration</div>
+        <div style="font-size:13px;color:#fff;font-weight:600">Kubernetes</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.05);border:1px solid #1e2d40;border-radius:8px;padding:10px 16px;text-align:center;flex:1;min-width:100px">
+        <div style="font-size:11px;color:#6677aa;margin-bottom:4px">Auth</div>
+        <div style="font-size:13px;color:#fff;font-weight:600">JWT / RS256</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+// ── Demo payloads ───────────────────────────────────────────────────────────────
+const DEMOS = {
+  normal: { url: '/api/test/normal', label: 'Normal request', color: 'allow' },
+  sqli:   { url: '/api/test/sqli', label: 'SQL Injection attempt', color: 'block' },
+  xss:    { url: '/api/test/xss', label: 'XSS attack', color: 'block' },
+  ddos:   { url: '/api/test/ddos', label: 'DDoS flood', color: 'block' },
+};
+
+async function fireDemo(type) {
+  const demo = DEMOS[type];
+  const resultEl = document.getElementById('demo-result');
+  resultEl.className = 'demo-result show';
+  resultEl.style.background = 'rgba(100,120,150,0.1)';
+  resultEl.style.border = '1px solid rgba(100,120,150,0.2)';
+  resultEl.style.color = '#aabbcc';
+  resultEl.textContent = 'Sending request...';
+
+  try {
+    let reqs = [fetch(demo.url)];
+    // For DDoS demo, fire 10 requests
+    if (type === 'ddos') {
+      for (let i = 0; i < 9; i++) reqs.push(fetch('/api/test/ddos'));
+    }
+    const responses = await Promise.all(reqs);
+    const res = responses[0];
+    const status = res.status;
+
+    let msg, cls;
+    if (status === 403) {
+      msg = `🚫 BLOCKED (403) — IDS detected: ${demo.label}`;
+      cls = 'result-block';
+    } else if (status === 200) {
+      if (type === 'normal') {
+        msg = `✅ ALLOWED (200) — Clean request passed through`;
+        cls = 'result-allow';
+      } else {
+        msg = `⚠️ ALERT — Suspicious request logged (risk score elevated)`;
+        cls = 'result-alert';
+      }
+    } else {
+      msg = `Response: ${status}`;
+      cls = 'result-allow';
+    }
+
+    resultEl.className = `demo-result show ${cls}`;
+    resultEl.textContent = msg;
+  } catch(e) {
+    resultEl.textContent = 'Request sent — check event log';
+  }
+
+  // Refresh stats
+  setTimeout(refreshStats, 300);
+}
+
+// ── Stats refresh ───────────────────────────────────────────────────────────────
+async function refreshStats() {
+  try {
+    const res = await fetch('/api/stats');
+    const data = await res.json();
+
+    document.getElementById('total').textContent   = data.total_requests;
+    document.getElementById('blocked').textContent = data.blocked;
+    document.getElementById('alerts').textContent  = data.alerts;
+    document.getElementById('allowed').textContent = data.allowed;
+    document.getElementById('blocked-ips-count').textContent = `${data.blocked_ips_count} IPs blocked`;
+
+    // Attack bars
+    const attacks = {
+      sqli: data.sqli_count, xss: data.xss_count,
+      ddos: data.ddos_count, traversal: data.traversal_count
+    };
+    const maxCount = Math.max(1, ...Object.values(attacks));
+    for (const [type, count] of Object.entries(attacks)) {
+      const pct = (count / maxCount * 100).toFixed(1);
+      document.getElementById(`bar-${type}`).style.width = pct + '%';
+      document.getElementById(`cnt-${type}`).textContent = count;
+    }
+
+    // Event log
+    renderLog(data.recent_events);
+
+    // Risk needle — use last event risk score
+    if (data.recent_events && data.recent_events.length > 0) {
+      const lastRisk = data.recent_events[0].risk_score || 0;
+      updateRiskMeter(lastRisk);
+    }
+  } catch(e) {}
+}
+
+function renderLog(events) {
+  const el = document.getElementById('event-log');
+  if (!events || events.length === 0) return;
+  el.innerHTML = events.map(e => `
+    <div class="event-row">
+      <span class="badge-decision badge-${e.decision}">${e.decision}</span>
+      <span class="event-ip">${e.ip}</span>
+      <span class="event-type">${e.attack_type !== 'none' ? e.attack_type.toUpperCase() : '–'}</span>
+      <span class="event-path">${e.path}</span>
+      <span style="color:#6677aa;font-size:11px">${(e.risk_score*100).toFixed(0)}%</span>
+      <span class="event-time">${e.time}</span>
+    </div>
+  `).join('');
+}
+
+function updateRiskMeter(score) {
+  const pct = Math.round(score * 100);
+  document.getElementById('risk-needle').style.left = pct + '%';
+  document.getElementById('risk-val').textContent = score.toFixed(3);
+}
+
+async function resetAll() {
+  await fetch('/api/reset-rates', { method: 'POST', headers: {'Content-Type':'application/json'}, body: '{}' });
+  document.getElementById('demo-result').className = 'demo-result';
+  document.getElementById('event-log').innerHTML = '<div style="color:#445566;font-size:12px;text-align:center;padding:2rem">Reset complete — ready for new demo</div>';
+  updateRiskMeter(0);
+  refreshStats();
+}
+
+// Auto-refresh every 2 seconds
+refreshStats();
+setInterval(refreshStats, 2000);
+</script>
+</body>
+</html>

@@ -1,0 +1,7 @@
+﻿__pycache__/
+*.pyc
+*.pyo
+.env
+*.log
+grafana-storage/
+.DS_Store

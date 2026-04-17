@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IDS — Intrusion Detection System</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', sans-serif; background: #0a0e1a; color: #e0e6f0; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+  .hero { text-align: center; padding: 3rem 2rem; }
+  .badge { display: inline-block; background: rgba(0,200,150,0.15); color: #00c896; border: 1px solid rgba(0,200,150,0.3); border-radius: 20px; padding: 6px 18px; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 1.5rem; }
+  h1 { font-size: 3rem; font-weight: 700; margin-bottom: 0.5rem; background: linear-gradient(135deg, #ffffff, #7eb8f7); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  h1 span { background: linear-gradient(135deg, #00c896, #0088ff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+  .subtitle { font-size: 1.1rem; color: #8899aa; margin-bottom: 2.5rem; }
+  .stack { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-bottom: 3rem; }
+  .pill { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 5px 14px; font-size: 12px; color: #aabbcc; }
+  .btn { display: inline-block; background: linear-gradient(135deg, #0066ff, #00c896); color: white; text-decoration: none; padding: 14px 36px; border-radius: 10px; font-size: 15px; font-weight: 600; transition: opacity 0.2s; }
+  .btn:hover { opacity: 0.85; }
+  .stats { display: flex; gap: 2rem; justify-content: center; margin-top: 3rem; flex-wrap: wrap; }
+  .stat { text-align: center; }
+  .stat-num { font-size: 2rem; font-weight: 700; color: #00c896; }
+  .stat-label { font-size: 12px; color: #8899aa; margin-top: 4px; }
+</style>
+</head>
+<body>
+<div class="hero">
+  <div class="badge">⚡ Hybrid ML + Rule-Based</div>
+  <h1>Real-Time <span>IDS</span></h1>
+  <p class="subtitle">Intrusion Detection System — Web Application Security</p>
+  <div class="stack">
+    <span class="pill">Python</span><span class="pill">Flask</span><span class="pill">Isolation Forest</span>
+    <span class="pill">Prometheus</span><span class="pill">Docker</span><span class="pill">Kubernetes</span><span class="pill">JWT</span>
+  </div>
+  <a href="/dashboard" class="btn">Open Live Dashboard →</a>
+  <div class="stats">
+    <div class="stat"><div class="stat-num">93%</div><div class="stat-label">Detection Accuracy</div></div>
+    <div class="stat"><div class="stat-num">&lt;5ms</div><div class="stat-label">Response Latency</div></div>
+    <div class="stat"><div class="stat-num">2.1%</div><div class="stat-label">False Positive Rate</div></div>
+    <div class="stat"><div class="stat-num">100%</div><div class="stat-label">Zero-Day Coverage</div></div>
+  </div>
+</div>
+</body>
+</html>

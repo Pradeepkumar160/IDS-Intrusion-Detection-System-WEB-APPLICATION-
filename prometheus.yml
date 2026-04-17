@@ -1,0 +1,9 @@
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: 'ids-app'
+    static_configs:
+      - targets: ['ids-app:5000']
+    metrics_path: '/metrics'
