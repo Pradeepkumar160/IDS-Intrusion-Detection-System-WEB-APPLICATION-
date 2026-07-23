@@ -1,4 +1,4 @@
-🛡️ Real-Time Intrusion Detection System (IDS).              
+🛡️ Real-Time Intrusion Detection System (IDS).             
 
 A production-grade, Machine Learning-powered Intrusion Detection System that monitors HTTP traffic in real time, detects attacks, blocks malicious IPs, and visualizes everything through live dashboards — fully containerized with Docker.
 
